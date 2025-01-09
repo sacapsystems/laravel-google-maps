@@ -19,43 +19,36 @@ class AzureMapsService
 
     public function searchSchools($query, $limit = 5)
     {
-        $response = Http::get($this->baseUrl, [
-            'api-version' => '1.0',
-            'subscription-key' => $this->apiKey,
-            'query' => $query,
-            'limit' => $limit,
-            'categorySet' => '7372',
-        ]);
-
-        if ($response->failed()) {
-            throw new Exception('Failed to fetch search results');
-        }
-
-        if ($response->json('summary.numResults') > 0) {
-            return $this->formatResults($response->json());
-        }
-
-        return [];
+        return $this->search($query, $limit, '7372');
     }
 
     public function searchAddress($query, $limit = 5)
     {
-        $response = Http::get($this->baseUrl, [
+        return $this->search($query, $limit);
+    }
+
+    private function search($query, $limit, $categorySet = null)
+    {
+        $params = [
             'api-version' => '1.0',
             'subscription-key' => $this->apiKey,
             'query' => $query,
             'limit' => $limit,
-        ]);
+        ];
+
+        if ($categorySet) {
+            $params['categorySet'] = $categorySet;
+        }
+
+        $response = Http::get($this->baseUrl, $params);
 
         if ($response->failed()) {
             throw new Exception('Failed to fetch search results');
         }
 
-        if ($response->json('summary.numResults') > 0) {
-            return $this->formatResults($response->json());
-        }
-
-        return [];
+        return $response->json('summary.numResults') > 0
+        ? json_encode($this->formatResults($response->json()))
+        : json_encode([]);
     }
 
     private function formatResults($data)
