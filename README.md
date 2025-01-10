@@ -69,3 +69,40 @@ The search results will be returned in the following format:
     }
 }
 ```
+## Development
+
+### Testing
+Run the tests with:
+
+```bash
+composer test
+```
+
+## Code Style
+This package follows PSR-12 coding standards. You can check and fix the code style with:
+
+```bash
+# Check code style
+./vendor/bin/phpcs
+
+# Fix code style
+./vendor/bin/phpcbf
+```
+You can also use composer scripts:
+
+```bash
+# Check code style
+composer cs-check
+
+# Fix code style
+composer cs-fix
+```
+## Requirements
+
+This package requires:
+
+- PHP 7.2 or higher
+- Laravel 6.0 or higher
+- An active Azure Maps subscription
+- A valid Azure Maps API key
+

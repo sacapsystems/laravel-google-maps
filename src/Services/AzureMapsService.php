@@ -46,9 +46,11 @@ class AzureMapsService
             throw new Exception('Failed to fetch search results');
         }
 
-        return $response->json('summary.numResults') > 0
-        ? json_encode($this->formatResults($response->json()))
-        : json_encode([]);
+        $results = $response->json('summary.numResults') > 0
+        ? $this->formatResults($response->json())
+        : [];
+
+        return json_encode($results);
     }
 
     private function formatResults($data)
@@ -56,23 +58,29 @@ class AzureMapsService
         return collect($data['results'] ?? [])->map(function ($result) {
             $address = $result['address'] ?? [];
 
+            $subdivision = isset($address['municipalitySubdivision'])
+            ? $address['municipalitySubdivision'] . ', '
+            : '';
+            $municipality = $address['municipality'] ?? '';
+            $line2 = trim($subdivision . $municipality);
+
             return [
-                'name' => $result['poi']['name'] ?? '',
-                'address' => [
-                    'line1' => trim(($address['streetNumber'] ?? '') . ' ' . ($address['streetName'] ?? '')),
-                    'line2' => trim((isset($address['municipalitySubdivision']) ? $address['municipalitySubdivision'] . ', ' : '') . ($address['municipality'] ?? '')),
-                    'suburb' => $address['municipalitySubdivision'] ?? null,
-                    'city' => $address['municipality'] ?? null,
-                    'postalCode' => $address['postalCode'] ?? null,
-                    'province' => $address['countrySubdivision'] ?? null,
-                    'provinceCode' => $address['countrySubdivisionCode'] ?? null,
-                    'country' => $address['country'] ?? null,
-                    'countryCodeISO3' => $address['countryCodeISO3'] ?? null,
-                ],
-                'coordinates' => [
-                    'lat' => $result['position']['lat'] ?? null,
-                    'lng' => $result['position']['lon'] ?? null
-                ],
+            'name' => $result['poi']['name'] ?? '',
+            'address' => [
+                'line1' => trim(($address['streetNumber'] ?? '') . ' ' . ($address['streetName'] ?? '')),
+                'line2' => $line2,
+                'suburb' => $address['municipalitySubdivision'] ?? null,
+                'city' => $address['municipality'] ?? null,
+                'postalCode' => $address['postalCode'] ?? null,
+                'province' => $address['countrySubdivision'] ?? null,
+                'provinceCode' => $address['countrySubdivisionCode'] ?? null,
+                'country' => $address['country'] ?? null,
+                'countryCodeISO3' => $address['countryCodeISO3'] ?? null,
+            ],
+            'coordinates' => [
+                'lat' => $result['position']['lat'] ?? null,
+                'lng' => $result['position']['lon'] ?? null
+            ],
             ];
         })->toArray();
     }
