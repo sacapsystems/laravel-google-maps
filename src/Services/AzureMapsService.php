@@ -4,7 +4,7 @@ namespace Sacapsystems\LaravelAzureMaps\Services;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
-use Exception;
+use Sacapsystems\LaravelAzureMaps\Exceptions\AzureMapsException;
 
 class AzureMapsService
 {
@@ -17,16 +17,25 @@ class AzureMapsService
         $this->apiKey = Config::get('azure-maps.api_key');
     }
 
+    /**
+     * @throws AzureMapsException
+     */
     public function searchSchools($query, $limit = 5)
     {
         return $this->search($query, $limit, '7372');
     }
 
+    /**
+     * @throws AzureMapsException
+     */
     public function searchAddress($query, $limit = 5)
     {
         return $this->search($query, $limit);
     }
 
+    /**
+     * @throws AzureMapsException
+     */
     private function search($query, $limit, $categorySet = null)
     {
         $params = [
@@ -43,44 +52,42 @@ class AzureMapsService
         $response = Http::get($this->baseUrl, $params);
 
         if ($response->failed()) {
-            throw new Exception('Failed to fetch search results');
+            throw new AzureMapsException('Failed to fetch search results');
         }
 
         $results = $response->json('summary.numResults') > 0
-        ? $this->formatResults($response->json())
-        : [];
+            ? $this->formatResults($response->json())
+            : [];
 
         return json_encode($results);
     }
 
-    private function formatResults($data)
+    private function formatResults($data): array
     {
         return collect($data['results'] ?? [])->map(function ($result) {
             $address = $result['address'] ?? [];
 
-            $subdivision = isset($address['municipalitySubdivision'])
-            ? $address['municipalitySubdivision'] . ', '
-            : '';
+            $subdivision = isset($address['municipalitySubdivision']) ? $address['municipalitySubdivision'] . ', ' : '';
             $municipality = $address['municipality'] ?? '';
             $line2 = trim($subdivision . $municipality);
 
             return [
-            'name' => $result['poi']['name'] ?? '',
-            'address' => [
-                'line1' => trim(($address['streetNumber'] ?? '') . ' ' . ($address['streetName'] ?? '')),
-                'line2' => $line2,
-                'suburb' => $address['municipalitySubdivision'] ?? null,
-                'city' => $address['municipality'] ?? null,
-                'postalCode' => $address['postalCode'] ?? null,
-                'province' => $address['countrySubdivision'] ?? null,
-                'provinceCode' => $address['countrySubdivisionCode'] ?? null,
-                'country' => $address['country'] ?? null,
-                'countryCodeISO3' => $address['countryCodeISO3'] ?? null,
-            ],
-            'coordinates' => [
-                'lat' => $result['position']['lat'] ?? null,
-                'lng' => $result['position']['lon'] ?? null
-            ],
+                'name' => $result['poi']['name'] ?? '',
+                'address' => [
+                    'line1' => trim(($address['streetNumber'] ?? '') . ' ' . ($address['streetName'] ?? '')),
+                    'line2' => $line2,
+                    'suburb' => $address['municipalitySubdivision'] ?? null,
+                    'city' => $address['municipality'] ?? null,
+                    'postalCode' => $address['postalCode'] ?? null,
+                    'province' => $address['countrySubdivision'] ?? null,
+                    'provinceCode' => $address['countrySubdivisionCode'] ?? null,
+                    'country' => $address['country'] ?? null,
+                    'countryCodeISO3' => $address['countryCodeISO3'] ?? null,
+                ],
+                'coordinates' => [
+                    'lat' => $result['position']['lat'] ?? null,
+                    'lng' => $result['position']['lon'] ?? null,
+                ],
             ];
         })->toArray();
     }

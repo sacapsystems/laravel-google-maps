@@ -3,6 +3,7 @@
 namespace Sacapsystems\LaravelAzureMaps\Tests\Unit;
 
 use Illuminate\Support\Facades\Http;
+use Sacapsystems\LaravelAzureMaps\Exceptions\AzureMapsException;
 use Sacapsystems\LaravelAzureMaps\Services\AzureMapsService;
 use Sacapsystems\LaravelAzureMaps\Tests\TestCase;
 
@@ -21,27 +22,29 @@ class AzureMapsServiceTest extends TestCase
         Http::fake([
             '*' => Http::response([
                 'summary' => ['numResults' => 1],
-                'results' => [[
-                    'address' => [
-                        'streetNumber' => '123',
-                        'streetName' => 'Main Street',
-                        'municipality' => 'Cape Town',
-                        'countrySubdivision' => 'Western Cape',
-                        'countrySubdivisionCode' => 'WC',
-                        'country' => 'South Africa',
-                        'countryCodeISO3' => 'ZAF',
-                        'postalCode' => '8001',
-                        'municipalitySubdivision' => 'City Bowl'
+                'results' => [
+                    [
+                        'address' => [
+                            'streetNumber' => '123',
+                            'streetName' => 'Main Street',
+                            'municipality' => 'Cape Town',
+                            'countrySubdivision' => 'Western Cape',
+                            'countrySubdivisionCode' => 'WC',
+                            'country' => 'South Africa',
+                            'countryCodeISO3' => 'ZAF',
+                            'postalCode' => '8001',
+                            'municipalitySubdivision' => 'City Bowl',
+                        ],
+                        'position' => [
+                            'lat' => -33.925,
+                            'lon' => 18.424,
+                        ],
+                        'poi' => [
+                            'name' => 'Test Location',
+                        ],
                     ],
-                    'position' => [
-                        'lat' => -33.925,
-                        'lon' => 18.424
-                    ],
-                    'poi' => [
-                        'name' => 'Test Location'
-                    ]
-                ]]
-            ], 200)
+                ],
+            ], 200),
         ]);
 
         $result = json_decode($this->service->searchAddress('123 Main Street, Cape Town'), true);
@@ -59,27 +62,29 @@ class AzureMapsServiceTest extends TestCase
         Http::fake([
             '*' => Http::response([
                 'summary' => ['numResults' => 1],
-                'results' => [[
-                    'address' => [
-                        'streetNumber' => '1',
-                        'streetName' => 'School Street',
-                        'municipality' => 'Cape Town',
-                        'countrySubdivision' => 'Western Cape',
-                        'countrySubdivisionCode' => 'WC',
-                        'country' => 'South Africa',
-                        'countryCodeISO3' => 'ZAF',
-                        'postalCode' => '8001',
-                        'municipalitySubdivision' => 'City Bowl'
+                'results' => [
+                    [
+                        'address' => [
+                            'streetNumber' => '1',
+                            'streetName' => 'School Street',
+                            'municipality' => 'Cape Town',
+                            'countrySubdivision' => 'Western Cape',
+                            'countrySubdivisionCode' => 'WC',
+                            'country' => 'South Africa',
+                            'countryCodeISO3' => 'ZAF',
+                            'postalCode' => '8001',
+                            'municipalitySubdivision' => 'City Bowl',
+                        ],
+                        'position' => [
+                            'lat' => -33.925,
+                            'lon' => 18.424,
+                        ],
+                        'poi' => [
+                            'name' => 'Cape Town High School',
+                        ],
                     ],
-                    'position' => [
-                        'lat' => -33.925,
-                        'lon' => 18.424
-                    ],
-                    'poi' => [
-                        'name' => 'Cape Town High School'
-                    ]
-                ]]
-            ], 200)
+                ],
+            ], 200),
         ]);
 
         $result = json_decode($this->service->searchSchools('Cape Town High School'), true);
@@ -95,8 +100,8 @@ class AzureMapsServiceTest extends TestCase
         Http::fake([
             '*' => Http::response([
                 'summary' => ['numResults' => 0],
-                'results' => []
-            ], 200)
+                'results' => [],
+            ], 200),
         ]);
 
         $result = json_decode($this->service->searchAddress('NonexistentAddress'), true);
@@ -108,10 +113,10 @@ class AzureMapsServiceTest extends TestCase
     public function testSearchWithError()
     {
         Http::fake([
-            '*' => Http::response([], 500)
+            '*' => Http::response([], 500),
         ]);
 
-        $this->expectException(\Exception::class);
+        $this->expectException(AzureMapsException::class);
         $this->expectExceptionMessage('Failed to fetch search results');
 
         $this->service->searchAddress('Test Address');
