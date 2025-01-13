@@ -1,7 +1,7 @@
 # Laravel Azure Maps
 
 ![Code Checks](https://github.com/sacapsystems/laravel-azure-maps/actions/workflows/code-checks.yaml/badge.svg)
-![GitHub Latest Tag](https://img.shields.io/github/v/tag/sacapsystems/laravel-azure-maps?label=stable)
+[![GitHub tag](https://img.shields.io/github/tag/sacapsystems/laravel-azure-maps)](https://github.com/sacapsystems/laravel-azure-maps/releases/?include_prereleases&sort=semver "View GitHub releases")
 ![PHP](https://img.shields.io/badge/PHP-%5E7.2-777BB4?logo=php)
 ![Laravel](https://img.shields.io/badge/Laravel-%5E6.0-FF2D20?logo=laravel)
 ![Code Style](https://img.shields.io/badge/Code%20Style-PSR--12-green)
