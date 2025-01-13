@@ -1,0 +1,164 @@
+name: Code Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: [ '7.4', '8.0', '8.1', '8.2', '8.3' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set safe.directory for Git
+        run: git config --global --add safe.directory /app
+
+      - name: Cache Composer dependencies
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install Composer
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: [ setup ]
+    strategy:
+      matrix:
+        php-version: [ '7.4', '8.0', '8.1', '8.2', '8.3' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set safe.directory for Git
+        run: git config --global --add safe.directory /app
+
+      - name: Cache Composer dependencies
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.php-version }}-
+
+      - name: Install Composer
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+
+      - name: Run PHP Lint
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+          command: lint
+
+  cs-check:
+    runs-on: ubuntu-latest
+    needs: [ setup ]
+    strategy:
+      matrix:
+        php-version: [ '7.4', '8.0', '8.1', '8.2', '8.3' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set safe.directory for Git
+        run: git config --global --add safe.directory /app
+
+      - name: Cache Composer dependencies
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.php-version }}-
+
+      - name: Install Composer
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+
+      - name: Run CS Check
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+          command: cs-check
+
+  phpunit:
+    runs-on: ubuntu-latest
+    needs: [ setup ]
+    strategy:
+      matrix:
+        php-version: [ '7.4', '8.0', '8.1', '8.2', '8.3' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set safe.directory for Git
+        run: git config --global --add safe.directory /app
+
+      - name: Cache Composer dependencies
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.php-version }}-
+
+      - name: Install Composer
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+
+      - name: Run PHPUnit
+        uses: php-actions/composer@v6
+        with:
+          php_version: ${{ matrix.php-version }}
+          php_extensions: pcov
+          command: test
+
+      - name: Code Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: false
+          indicators: true
+          output: both
+          thresholds: '60 80'
+
+      - name: Add PHP version comment for Code Coverage
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          header: "PHP ${{ matrix.php-version }} Coverage Report"
+          message: "Code coverate report for PHP ${{ matrix.php-version }}"
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          append: true
+          header: "PHP ${{ matrix.php-version }} Coverage Report"
+          path: code-coverage-results.md

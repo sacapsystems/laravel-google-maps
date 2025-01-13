@@ -7,7 +7,7 @@ use Sacapsystems\LaravelAzureMaps\AzureMapsServiceProvider;
 
 abstract class TestCase extends OrchestraTestCase
 {
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [
             AzureMapsServiceProvider::class,
