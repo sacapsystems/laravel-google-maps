@@ -63,7 +63,7 @@ jobs:
         uses: php-actions/composer@v6
         with:
           php_version: ${{ matrix.php-version }}
-          command: php-lint
+          command: lint
 
   cs-check:
     runs-on: ubuntu-latest
