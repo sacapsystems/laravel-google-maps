@@ -1,6 +1,9 @@
 # Laravel Azure Maps
 
 ![Code Checks](https://github.com/sacapsystems/laravel-azure-maps/actions/workflows/code-checks.yaml/badge.svg)
+![PHP](https://img.shields.io/badge/PHP-7.2%20to%208.2-777BB4?logo=php)
+![Laravel](https://img.shields.io/badge/Laravel-6.0%20to%2010.x-FF2D20?logo=laravel)
+![Code Style](https://img.shields.io/badge/code%20style-PSR--12-green)
 
 A Laravel package for Azure Maps integration.
 
