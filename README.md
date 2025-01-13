@@ -1,5 +1,7 @@
 # Laravel Azure Maps
 
+![Code Checks](https://github.com/sacapsystems/laravel-azure-maps/actions/workflows/code-checks.yaml/badge.svg)
+
 A Laravel package for Azure Maps integration.
 
 ## Table of Contents
