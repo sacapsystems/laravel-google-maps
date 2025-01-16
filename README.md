@@ -8,18 +8,57 @@
 A Laravel package for Azure Maps integration.
 
 ## Table of Contents
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [Response Format](#response-format)
+- [Package Development](#package-development)
+  - [Testing](#testing)
+  - [Code Style](#code-style)
+
+## Requirements
+
+This package requires:
+
+- PHP 7.2 or higher
+- Laravel 6.0 or higher
+- An active Azure Maps subscription
+- A valid Azure Maps API key
 
 ## Installation
 
-You can install the package via composer:
+First, add the repository to your composer.json:
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/sacapsystems/laravel-azure-maps.git"
+    }
+]
+```
+
+Then, install the package via composer:
 
 ```bash
 composer require sacapsystems/laravel-azure-maps
 ```
+
+If you're not using package discovery, add the service provider and facade to your `config/app.php`:
+
+```php
+'providers' => [
+    // ...
+    Sacapsystems\LaravelAzureMaps\LaravelAzureMapsServiceProvider::class,
+],
+
+'aliases' => [
+    // ...
+    'AzureMaps' => Sacapsystems\LaravelAzureMaps\Facades\AzureMaps::class,
+]
+```
+
 ## Configuration
 
 Publish the config file:
@@ -33,6 +72,7 @@ Add your Azure Maps key to your .env file:
 ```
 AZURE_MAPS_API_KEY=your-key-here
 ```
+
 ## Usage
 
 ```php
@@ -74,17 +114,20 @@ The search results will be returned in the following format:
     }
 }
 ```
-## Development
+
+## Package Development
+
+The following sections are for package developers only.
 
 ### Testing
-Run the tests with:
+Run the package tests with:
 
 ```bash
 composer test
 ```
 
-## Code Style
-This package follows PSR-12 coding standards. You can check and fix the code style with:
+### Code Style
+This package follows PSR-12 coding standards. Package developers can check and fix the code style with:
 
 ```bash
 # Check code style
@@ -93,7 +136,8 @@ This package follows PSR-12 coding standards. You can check and fix the code sty
 # Fix code style
 ./vendor/bin/phpcbf
 ```
-You can also use composer scripts:
+
+Or use composer scripts:
 
 ```bash
 # Check code style
@@ -102,12 +146,3 @@ composer cs-check
 # Fix code style
 composer cs-fix
 ```
-## Requirements
-
-This package requires:
-
-- PHP 7.2 or higher
-- Laravel 6.0 or higher
-- An active Azure Maps subscription
-- A valid Azure Maps API key
-
