@@ -31,7 +31,7 @@ php artisan vendor:publish --provider="Sacapsystems\LaravelAzureMaps\LaravelAzur
 Add your Azure Maps key to your .env file:
 
 ```
-AZURE_MAPS_KEY=your-key-here
+AZURE_MAPS_API_KEY=your-key-here
 ```
 ## Usage
 
