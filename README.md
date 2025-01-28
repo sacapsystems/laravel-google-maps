@@ -50,7 +50,7 @@ If you're not using package discovery, add the service provider and facade to yo
 ```php
 'providers' => [
         // ...
-        Sacapsystems\LaravelGoogleMaps\LaravelGoogleMapsServiceProvider::class,
+        Sacapsystems\LaravelGoogleMaps\GoogleMapsServiceProvider::class,
 ],
 
 'aliases' => [
@@ -64,7 +64,7 @@ If you're not using package discovery, add the service provider and facade to yo
 Publish the config file:
 
 ```bash
-php artisan vendor:publish --provider="Sacapsystems\LaravelGoogleMaps\LaravelGoogleMapsServiceProvider"
+php artisan vendor:publish --provider="Sacapsystems\LaravelGoogleMaps\GoogleMapsServiceProvider"
 ```
 
 Add your Google Maps API key to your .env file:
