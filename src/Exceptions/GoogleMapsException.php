@@ -1,13 +1,13 @@
 <?php
 
-namespace Sacapsystems\LaravelAzureMaps\Exceptions;
+namespace Sacapsystems\LaravelGoogleMaps\Exceptions;
 
 use Exception;
 
-class AzureMapsException extends Exception
+class GoogleMapsException extends Exception
 {
     public function __construct(
-        $message = 'An error occurred while fetching data from Azure Maps',
+        $message = 'An error occurred while fetching data from Google Maps',
         $code = 0,
         Exception $previous = null
     ) {

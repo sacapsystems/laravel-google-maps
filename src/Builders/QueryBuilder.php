@@ -1,106 +1,131 @@
 <?php
 
-namespace Sacapsystems\LaravelAzureMaps\Builders;
+namespace Sacapsystems\LaravelGoogleMaps\Builders;
 
 use Illuminate\Support\Facades\Http;
-use Sacapsystems\LaravelAzureMaps\Exceptions\AzureMapsException;
+use Sacapsystems\LaravelGoogleMaps\Exceptions\GoogleMapsException;
 
 class QueryBuilder
 {
     private array $params;
-    private string $baseUrl;
+    private array $baseUrl;
     private string $apiKey;
+    private string $endpoint;
 
-    private const DEFAULT_PARAMS = [
-        'api-version' => '1.0',
-        'limit' => 5
-    ];
-
-    public function __construct(string $baseUrl, string $apiKey)
+    public function __construct(array $baseUrl, string $apiKey)
     {
         $this->baseUrl = $baseUrl;
         $this->apiKey = $apiKey;
     }
 
-    public function newSearch(string $query, ?string $categorySet = null): self
+    public function newSearch(string $query, ?string $type = null): self
     {
-        $this->params = self::DEFAULT_PARAMS + [
-            'subscription-key' => $this->apiKey,
+        $this->endpoint = 'search';
+        $this->params = [
+            'key' => $this->apiKey,
             'query' => $query
         ];
 
-        if ($categorySet) {
-            $this->params['categorySet'] = $categorySet;
+        if ($type) {
+            $this->params['type'] = $type;
         }
+
+        return $this;
+    }
+
+    public function getPlaceDetails(string $placeId): self
+    {
+        $this->endpoint = 'details';
+        $this->params = [
+            'key' => $this->apiKey,
+            'place_id' => $placeId,
+            'fields' => 'address_component,formatted_address,geometry,name'
+        ];
 
         return $this;
     }
 
     public function limit(int $limit): self
     {
-        $this->params['limit'] = $limit;
-        return $this;
-    }
-
-    /**
-     * @param string|array $countryCode
-     */
-    public function country($countryCode): self
-    {
-        $this->params['countrySet'] = is_array($countryCode)
-            ? implode(',', $countryCode)
-            : $countryCode;
+        $this->params['maxResults'] = $limit;
         return $this;
     }
 
     public function location(float $lat, float $lon, int $radius = 50000): self
     {
-        $this->params['lat'] = $lat;
-        $this->params['lon'] = $lon;
+        $this->params['location'] = "{$lat},{$lon}";
         $this->params['radius'] = $radius;
         return $this;
     }
 
     public function get(): string
     {
-        $response = Http::get($this->baseUrl, $this->params);
+        $response = Http::get($this->baseUrl[$this->endpoint], $this->params);
 
-        if ($response->failed()) {
-            throw new AzureMapsException('Failed to fetch search results');
+        if ($response->failed() || $response->json('status') !== 'OK') {
+            throw new GoogleMapsException('Failed to fetch results');
         }
 
-        return $this->formatResults($response->json());
+        return $this->endpoint === 'search'
+            ? $this->formatSearchResults($response->json())
+            : $this->formatDetailResults($response->json());
     }
 
-    private function formatResults(array $results): string
+    private function formatSearchResults(array $response): string
     {
-        $formattedResults = collect($results['results'] ?? [])->map(function ($result) {
-            $address = $result['address'] ?? [];
-
-            $subdivision = isset($address['municipalitySubdivision']) ? $address['municipalitySubdivision'] . ', ' : '';
-            $municipality = $address['municipality'] ?? '';
-            $line2 = trim($subdivision . $municipality);
-
+        $formattedResults = collect($response['predictions'] ?? [])->map(function ($result) {
             return [
-                'name' => $result['poi']['name'] ?? '',
-                'address' => [
-                    'line1' => trim(($address['streetNumber'] ?? '') . ' ' . ($address['streetName'] ?? '')),
-                    'line2' => $line2,
-                    'suburb' => $address['municipalitySubdivision'] ?? null,
-                    'city' => $address['municipality'] ?? null,
-                    'postalCode' => $address['postalCode'] ?? null,
-                    'province' => $address['countrySubdivision'] ?? null,
-                    'provinceCode' => $address['countrySubdivisionCode'] ?? null,
-                    'country' => $address['country'] ?? null,
-                    'countryCodeISO3' => $address['countryCodeISO3'] ?? null,
-                ],
-                'coordinates' => [
-                    'lat' => $result['position']['lat'] ?? null,
-                    'lng' => $result['position']['lon'] ?? null,
-                ],
+                'place_id' => $result['place_id'],
+                'name' => $result['description'] ?? '',
             ];
-        })->toArray();
+        });
 
         return json_encode($formattedResults);
+    }
+
+    private function formatDetailResults(array $response): string
+    {
+        $result = $response['result'];
+        $addressComponents = collect($result['address_components'] ?? []);
+
+        $streetNumber = $this->findAddressComponent($addressComponents, 'street_number');
+        $streetName = $this->findAddressComponent($addressComponents, 'route');
+        $suburb = $this->findAddressComponent($addressComponents, 'sublocality');
+        $city = $this->findAddressComponent($addressComponents, 'locality');
+
+        $line1 = trim(($streetNumber ?? '') . ' ' . ($streetName ?? ''));
+        $line2 = trim(($suburb ? $suburb . ', ' : '') . ($city ?? ''));
+
+        $formattedResult = [
+            'name' => $result['name'] ?? '',
+            'address' => [
+                'line1' => $line1,
+                'line2' => $line2,
+                'street_number' => $streetNumber,
+                'street_name' => $streetName,
+                'suburb' => $suburb,
+                'city' => $city,
+                'postalCode' => $this->findAddressComponent($addressComponents, 'postal_code'),
+                'province' => $this->findAddressComponent($addressComponents, 'administrative_area_level_1'),
+                'provinceCode' => $this->findAddressComponent($addressComponents, 'administrative_area_level_1', true),
+                'country' => $this->findAddressComponent($addressComponents, 'country'),
+                'countryCode' => $this->findAddressComponent($addressComponents, 'country', true),
+            ],
+            'coordinates' => [
+                'lat' => $result['geometry']['location']['lat'] ?? null,
+                'lng' => $result['geometry']['location']['lng'] ?? null,
+            ],
+        ];
+
+        return json_encode($formattedResult);
+    }
+
+    private function findAddressComponent($components, $type, $useShortName = false): ?string
+    {
+        $component = $components->first(function ($component) use ($type) {
+            return in_array($type, $component['types'] ?? []);
+        });
+
+        return $component ? ($useShortName ? $component['short_name'] : $component['long_name']) : null;
     }
 }

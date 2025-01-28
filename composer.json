@@ -1,11 +1,11 @@
 {
-  "name": "sacapsystems/laravel-azure-maps",
-  "description": "Laravel Azure Maps integration",
+  "name": "sacapsystems/laravel-google-maps",
+  "description": "Laravel Google Maps integration",
   "type": "library",
   "require": {
     "ext-json": "*",
     "illuminate/support": "^6.0|^7.0|^8.0|^9.0|^10.0",
-    "php": "^7.2|^8.0",
+    "php": "^7.4|^8.0",
     "illuminate/http": "^6.0|^7.0|^8.0|^9.0|^10.0",
     "guzzlehttp/guzzle": "^6.0|^7.0"
   },
@@ -17,12 +17,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Sacapsystems\\LaravelAzureMaps\\": "src/"
+      "Sacapsystems\\LaravelGoogleMaps\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Sacapsystems\\LaravelAzureMaps\\Tests\\": "tests/"
+      "Sacapsystems\\LaravelGoogleMaps\\Tests\\": "tests/"
     }
   },
   "scripts": {
@@ -31,5 +31,6 @@
     "cs-check": "@php ./vendor/bin/phpcs",
     "cs-fix": "@php ./vendor/bin/phpcbf"
   },
-  "minimum-stability": "dev"
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }
