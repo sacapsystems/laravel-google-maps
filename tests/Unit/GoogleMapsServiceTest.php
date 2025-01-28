@@ -142,6 +142,19 @@ class GoogleMapsServiceTest extends TestCase
         $this->assertEmpty($result);
     }
 
+    public function testLimitResults()
+    {
+        Http::fake(['*' => Http::response($this->mockAutocompleteResponse, 200)]);
+
+        $this->service->searchAddress('123 Main Street')
+            ->limit(5)
+            ->get();
+
+        Http::assertSent(function ($request) {
+            return $request['maxResults'] === 5;
+        });
+    }
+
     private function assertAutocompleteResponseStructure($result)
     {
         $this->assertIsArray($result);
