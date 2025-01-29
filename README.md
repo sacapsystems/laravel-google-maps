@@ -21,7 +21,7 @@ A Laravel package for Google Maps integration.
 
 This package requires:
 
-- PHP 7.2 or higher
+- PHP 7.4 or higher
 - Laravel 6.0 or higher
 - A Google Cloud Platform account
 - A valid Google Maps API key
