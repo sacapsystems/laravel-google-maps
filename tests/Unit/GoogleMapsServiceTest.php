@@ -75,7 +75,7 @@ class GoogleMapsServiceTest extends TestCase
 
         $this->assertAutocompleteResponseStructure($result);
         Http::assertSent(function ($request) {
-            return $request['query'] === '123 Main Street';
+            return $request['input'] === '123 Main Street';
         });
     }
 
