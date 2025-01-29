@@ -23,7 +23,7 @@ class QueryBuilder
         $this->endpoint = 'search';
         $this->params = [
             'key' => $this->apiKey,
-            'query' => $query
+            'input' => $query
         ];
 
         if ($type) {
