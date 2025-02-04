@@ -2,7 +2,8 @@
 
 namespace Sacapsystems\LaravelGoogleMaps\Builders;
 
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Sacapsystems\LaravelGoogleMaps\Exceptions\GoogleMapsException;
 
 class QueryBuilder
@@ -11,11 +12,13 @@ class QueryBuilder
     private array $baseUrl;
     private string $apiKey;
     private string $endpoint;
+    private Client $client;
 
-    public function __construct(array $baseUrl, string $apiKey)
+    public function __construct(array $baseUrl, string $apiKey, ?Client $client = null)
     {
         $this->baseUrl = $baseUrl;
         $this->apiKey = $apiKey;
+        $this->client = $client ?? new Client();
     }
 
     public function newSearch(string $query, ?string $type = null): self
@@ -57,18 +60,25 @@ class QueryBuilder
         $this->params['radius'] = $radius;
         return $this;
     }
-
     public function get(): string
     {
-        $response = Http::get($this->baseUrl[$this->endpoint], $this->params);
+        try {
+            $response = $this->client->get($this->baseUrl[$this->endpoint], [
+                'query' => $this->params
+            ]);
 
-        if ($response->failed() || $response->json('status') !== 'OK') {
-            throw new GoogleMapsException('Failed to fetch results');
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if ($data['status'] !== 'OK') {
+                throw new GoogleMapsException('Failed to fetch results');
+            }
+
+            return $this->endpoint === 'search'
+                ? $this->formatSearchResults($data)
+                : $this->formatDetailResults($data);
+        } catch (GuzzleException $e) {
+            throw new GoogleMapsException('Failed to fetch results: ' . $e->getMessage());
         }
-
-        return $this->endpoint === 'search'
-            ? $this->formatSearchResults($response->json())
-            : $this->formatDetailResults($response->json());
     }
 
     private function formatSearchResults(array $response): string

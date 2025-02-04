@@ -8,13 +8,18 @@ use Sacapsystems\LaravelGoogleMaps\Builders\QueryBuilder;
 class GoogleMapsService
 {
     private QueryBuilder $queryBuilder;
+    private $queryBuilderFactory;
 
-    public function __construct()
+    public function __construct(?callable $queryBuilderFactory = null)
     {
-        $this->queryBuilder = new QueryBuilder(
-            Config::get('google-maps.base_url'),
-            Config::get('google-maps.api_key')
-        );
+        $this->queryBuilderFactory = $queryBuilderFactory ?? function () {
+            return new QueryBuilder(
+                Config::get('google-maps.base_url'),
+                Config::get('google-maps.api_key')
+            );
+        };
+
+        $this->queryBuilder = ($this->queryBuilderFactory)();
     }
 
     public function searchAddress(string $query): QueryBuilder
