@@ -31,6 +31,5 @@
     "cs-check": "@php ./vendor/bin/phpcs",
     "cs-fix": "@php ./vendor/bin/phpcbf"
   },
-  "minimum-stability": "dev",
-  "prefer-stable": true
+  "minimum-stability": "dev"
 }

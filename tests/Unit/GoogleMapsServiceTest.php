@@ -2,98 +2,120 @@
 
 namespace Sacapsystems\LaravelGoogleMaps\Tests\Unit;
 
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
 use Sacapsystems\LaravelGoogleMaps\Exceptions\GoogleMapsException;
 use Sacapsystems\LaravelGoogleMaps\Services\GoogleMapsService;
 use Sacapsystems\LaravelGoogleMaps\Tests\TestCase;
+use Sacapsystems\LaravelGoogleMaps\Builders\QueryBuilder;
 
 class GoogleMapsServiceTest extends TestCase
 {
     protected $service;
     protected $mockAutocompleteResponse;
     protected $mockDetailsResponse;
+    protected $container;
+    protected $mock;
+    protected $client;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Configure the service with test values
         config([
-            'google-maps.api_key' => 'test-api-key',
-            'google-maps.base_url' => [
-                'search' => 'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-                'details' => 'https://maps.googleapis.com/maps/api/place/details/json'
-            ]
+           'google-maps.api_key' => 'test-api-key',
+           'google-maps.base_url' => [
+               'search' => 'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+               'details' => 'https://maps.googleapis.com/maps/api/place/details/json'
+           ]
         ]);
 
-        $this->service = new GoogleMapsService();
+        $this->container = [];
+        $this->mock = new MockHandler();
+        $handlerStack = HandlerStack::create($this->mock);
+        $history = Middleware::history($this->container);
+        $handlerStack->push($history);
+        $this->client = new Client(['handler' => $handlerStack]);
 
-        // Mock for autocomplete response
+        $this->service = new GoogleMapsService(function () {
+            return new QueryBuilder(
+                config('google-maps.base_url'),
+                config('google-maps.api_key'),
+                $this->client
+            );
+        });
+
         $this->mockAutocompleteResponse = [
-            'status' => 'OK',
-            'predictions' => [
-                [
-                    'description' => '123 Main Street, Cape Town, South Africa',
-                    'place_id' => 'ChIJxxxxxxxxxx'
-                ]
-            ]
+           'status' => 'OK',
+           'predictions' => [
+               [
+                   'description' => '123 Main Street, Cape Town, South Africa',
+                   'place_id' => 'ChIJxxxxxxxxxx'
+               ]
+           ]
         ];
 
-        // Mock for place details response
         $this->mockDetailsResponse = [
-            'status' => 'OK',
-            'result' => [
-                'name' => 'Test High School',
-                'formatted_address' => '123 Main Street, Cape Town, 8001, South Africa',
-                'address_components' => [
-                    ['long_name' => '123', 'short_name' => '123', 'types' => ['street_number']],
-                    ['long_name' => 'Main Street', 'short_name' => 'Main St', 'types' => ['route']],
-                    ['long_name' => 'Cape Town', 'short_name' => 'Cape Town', 'types' => ['locality']],
-                    ['long_name' => 'Western Cape', 'short_name' => 'WC', 'types' => ['administrative_area_level_1']],
-                    ['long_name' => 'South Africa', 'short_name' => 'ZA', 'types' => ['country']],
-                    ['long_name' => '8001', 'short_name' => '8001', 'types' => ['postal_code']]
-                ],
-                'geometry' => [
-                    'location' => [
-                        'lat' => -33.925,
-                        'lng' => 18.424
-                    ]
-                ]
-            ]
+           'status' => 'OK',
+           'result' => [
+               'name' => 'Test High School',
+               'formatted_address' => '123 Main Street, Cape Town, 8001, South Africa',
+               'address_components' => [
+                   ['long_name' => '123', 'short_name' => '123', 'types' => ['street_number']],
+                   ['long_name' => 'Main Street', 'short_name' => 'Main St', 'types' => ['route']],
+                   ['long_name' => 'Cape Town', 'short_name' => 'Cape Town', 'types' => ['locality']],
+                   ['long_name' => 'Western Cape', 'short_name' => 'WC', 'types' => ['administrative_area_level_1']],
+                   ['long_name' => 'South Africa', 'short_name' => 'ZA', 'types' => ['country']],
+                   ['long_name' => '8001', 'short_name' => '8001', 'types' => ['postal_code']]
+               ],
+               'geometry' => [
+                   'location' => ['lat' => -33.925, 'lng' => 18.424]
+               ]
+           ]
         ];
     }
 
     public function testAutocompleteSearch()
     {
-        Http::fake(['*' => Http::response($this->mockAutocompleteResponse, 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode($this->mockAutocompleteResponse))
+        );
 
         $result = json_decode(
-            $this->service->searchAddress('123 Main Street')
-                ->get(),
+            $this->service->searchAddress('123 Main Street')->get(),
             true
         );
 
         $this->assertAutocompleteResponseStructure($result);
-        Http::assertSent(function ($request) {
-            return $request['input'] === '123 Main Street';
-        });
+
+        $request = $this->container[0]['request'];
+        $query = [];
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertEquals('123 Main Street', $query['input']);
     }
 
     public function testHighSchoolSearch()
     {
-        Http::fake(['*' => Http::response($this->mockAutocompleteResponse, 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode($this->mockAutocompleteResponse))
+        );
 
-        $this->service->searchHighSchools('Test High School')
-            ->get();
+        $this->service->searchHighSchools('Test High School')->get();
 
-        Http::assertSent(function ($request) {
-            return $request['type'] === 'secondary_school';
-        });
+        $request = $this->container[0]['request'];
+        $query = [];
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertEquals('secondary_school', $query['type']);
     }
 
     public function testPlaceDetails()
     {
-        Http::fake(['*' => Http::response($this->mockDetailsResponse, 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode($this->mockDetailsResponse))
+        );
 
         $result = json_decode(
             $this->service->getPlaceDetails('ChIJxxxxxxxxxx')->get(),
@@ -101,27 +123,34 @@ class GoogleMapsServiceTest extends TestCase
         );
 
         $this->assertPlaceDetailsResponseStructure($result);
-        Http::assertSent(function ($request) {
-            return $request['place_id'] === 'ChIJxxxxxxxxxx';
-        });
+
+        $request = $this->container[0]['request'];
+        $query = [];
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertEquals('ChIJxxxxxxxxxx', $query['place_id']);
     }
 
     public function testSearchWithLocation()
     {
-        Http::fake(['*' => Http::response($this->mockAutocompleteResponse, 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode($this->mockAutocompleteResponse))
+        );
 
         $this->service->searchAddress('123 Main Street')
-            ->location(-33.925, 18.424)
-            ->get();
+           ->location(-33.925, 18.424)
+           ->get();
 
-        Http::assertSent(function ($request) {
-            return $request['location'] === '-33.925,18.424';
-        });
+        $request = $this->container[0]['request'];
+        $query = [];
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertEquals('-33.925,18.424', $query['location']);
     }
 
     public function testSearchWithError()
     {
-        Http::fake(['*' => Http::response(['status' => 'ZERO_RESULTS'], 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode(['status' => 'ZERO_RESULTS']))
+        );
 
         $this->expectException(GoogleMapsException::class);
         $this->service->searchAddress('Test')->get();
@@ -129,10 +158,12 @@ class GoogleMapsServiceTest extends TestCase
 
     public function testSearchWithNoResults()
     {
-        Http::fake(['*' => Http::response([
-            'status' => 'OK',
-            'predictions' => []
-        ], 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode([
+               'status' => 'OK',
+               'predictions' => []
+            ]))
+        );
 
         $result = json_decode(
             $this->service->searchAddress('NonexistentAddress')->get(),
@@ -144,15 +175,18 @@ class GoogleMapsServiceTest extends TestCase
 
     public function testLimitResults()
     {
-        Http::fake(['*' => Http::response($this->mockAutocompleteResponse, 200)]);
+        $this->mock->append(
+            new Response(200, [], json_encode($this->mockAutocompleteResponse))
+        );
 
         $this->service->searchAddress('123 Main Street')
-            ->limit(5)
-            ->get();
+           ->limit(5)
+           ->get();
 
-        Http::assertSent(function ($request) {
-            return $request['maxResults'] === 5;
-        });
+        $request = $this->container[0]['request'];
+        $query = [];
+        parse_str($request->getUri()->getQuery(), $query);
+        $this->assertEquals(5, $query['maxResults']);
     }
 
     private function assertAutocompleteResponseStructure($result)
